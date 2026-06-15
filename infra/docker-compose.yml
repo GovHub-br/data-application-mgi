@@ -7,19 +7,20 @@ x-airflow-common: &airflow-common
     dockerfile: infra/docker/airflow/Dockerfile
     target: ${AIRFLOW_BUILD_TARGET:-airflow-dev}
     args:
-      AIRFLOW_VERSION: ${AIRFLOW_VERSION:-2.8.1}
+      AIRFLOW_VERSION: ${AIRFLOW_VERSION:-3.2.2}
       PYTHON_VERSION: ${PYTHON_VERSION:-3.11}
   user: "${AIRFLOW_UID:-50000}:0"
   env_file:
     - ../.env
   volumes:
     - ./airflow/airflow.cfg:/opt/airflow/airflow.cfg
+    - ./airflow/prune_stale_dags.py:/opt/airflow/prune_stale_dags.py:ro
     - ../dags:/opt/airflow/dags/
     - ../plugins:/opt/airflow/plugins/
     - ../helpers:/opt/airflow/helpers/
     - ../templates:/opt/airflow/templates/
     - ../dbt:/opt/airflow/dbt/
-    - ../dbt/ipea/profiles.yml:/opt/airflow/.dbt/profiles.yml
+    - ../dbt/minc/profiles.yml:/opt/airflow/.dbt/profiles.yml
   depends_on: &airflow-common-depends-on
     postgres:
       condition: service_healthy
@@ -27,29 +28,27 @@ x-airflow-common: &airflow-common
 # Common environment variables for Airflow
 x-airflow-environment: &airflow-common-env
   AIRFLOW__CORE__DEFAULT_TIMEZONE: 'America/Sao_Paulo'
-  AIRFLOW__CORE__ENABLE_XCOM_PICKLING: 'true'
   AIRFLOW__CORE__EXECUTOR: LocalExecutor
   AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW__CORE__FERNET_KEY:-}
   AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
   AIRFLOW__CORE__TEST_CONNECTION: Enabled
   AIRFLOW__CORE__MAX_MAP_LENGTH: 15000
-  AIRFLOW__API__AUTH_BACKENDS: airflow.api.auth.backend.basic_auth
+  AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: airflow:admin
+  AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_PASSWORDS_FILE: /opt/airflow/simple_auth_manager_passwords.json
   AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres/airflow
   AIRFLOW__EMAIL__DEFAULT_EMAIL_ON_RETRY: 'false'
   AIRFLOW__EMAIL__DEFAULT_EMAIL_ON_FAILURE: 'false'
   AIRFLOW__WEBSERVER__DEFAULT_UI_TIMEZONE: 'America/Sao_Paulo'
   AIRFLOW__WEBSERVER__INSTANCE_NAME: "Ipea - Local Dev!"
-  AIRFLOW__WEBSERVER__NAVBAR_COLOR: '#98DFFF'
+  AIRFLOW__WEBSERVER__NAVBAR_COLOR: '#112130'
   AIRFLOW__WEBSERVER__RELOAD_ON_PLUGIN_CHANGE: 'true'
-  AIRFLOW__WEBSERVER__SECRET_KEY: '42'
+  AIRFLOW__API__SECRET_KEY: ${AIRFLOW__API__SECRET_KEY:-local-dev-airflow-secret-key}
   PYTHONPATH: "/opt/airflow/dags:/opt/airflow/plugins:/opt/airflow/helpers"
   _AIRFLOW_DB_MIGRATE: 'true'
-  _AIRFLOW_WWW_USER_CREATE: 'true'
-  _AIRFLOW_WWW_USER_USERNAME: ${_AIRFLOW_WWW_USER_USERNAME:-airflow}
-  _AIRFLOW_WWW_USER_PASSWORD: ${_AIRFLOW_WWW_USER_PASSWORD:-airflow}
   AIRFLOW__CORE__PLUGINS_FOLDER: /opt/airflow/plugins
   AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
   AIRFLOW_REPO_BASE: /opt/airflow
+  AIRFLOW_PRUNE_STALE_DAGS: ${AIRFLOW_PRUNE_STALE_DAGS:-true}
   # A ENV AIRFLOW_REPO_BASE É IMPORTANTE PARA SINCRONIZAR COM O SISTEMA DE PASTAS
   # DO AIRFLOW EM HOMOLOG E PROD, ELES POSSUEM UMA ESTRUTURA DE PASTAS DIFERENTE
   # USAR ESSA ENV NOS CÓDIGOS PARA NÃO HAVER CONFLITOS
@@ -58,14 +57,40 @@ services:
   # Airflow Services
   airflow:
     <<: *airflow-common
-    # Usamos o comando de standalone aqui para não rodar múltiplos containers
-    # do airflow localmente e assim melhorar a velocidade inicialização
-    # doc do standalone: https://airflow.apache.org/docs/apache-airflow/2.8.1/start.html
-    command: standalone
+    # Usamos standalone para não rodar múltiplos containers localmente.
+    # A poda automática remove DAGs órfãs do metadata DB quando arquivos são apagados.
+    command:
+      - bash
+      - -c
+      - |
+        set -euo pipefail
+
+        airflow standalone &
+        airflow_pid=$$!
+
+        trap 'kill -TERM "$$airflow_pid" 2>/dev/null || true; wait "$$airflow_pid" 2>/dev/null || true' TERM INT
+
+        if [[ "${AIRFLOW_PRUNE_STALE_DAGS:-true}" == "true" ]]; then
+          for _ in {1..60}; do
+            if ! kill -0 "$$airflow_pid" 2>/dev/null; then
+              wait "$$airflow_pid"
+              exit $?
+            fi
+
+            if curl --fail --silent http://localhost:8080/api/v2/monitor/health >/dev/null; then
+              python /opt/airflow/prune_stale_dags.py || true
+              break
+            fi
+
+            sleep 2
+          done
+        fi
+
+        wait "$$airflow_pid"
     ports:
       - "8080:8080"
     healthcheck:
-      test: [ "CMD", "curl", "--fail", "http://localhost:8080/health" ]
+      test: [ "CMD", "curl", "--fail", "http://localhost:8080/api/v2/monitor/health" ]
       interval: 10s
       timeout: 60s
       start_period: 60s
@@ -103,8 +128,8 @@ services:
       - dev
     environment:
       AIRFLOW_API_URL: http://airflow:8080
-      AIRFLOW_USERNAME: ${_AIRFLOW_WWW_USER_USERNAME:-airflow}
-      AIRFLOW_PASSWORD: ${_AIRFLOW_WWW_USER_PASSWORD:-airflow}
+      AIRFLOW_USERNAME: ${AIRFLOW_USERNAME:-airflow}
+      AIRFLOW_PASSWORD: ${AIRFLOW_PASSWORD:-airflow}
       AF_READ_ONLY: ${AF_READ_ONLY:-false}
       MCP_TRANSPORT: http
       MCP_HOST: 0.0.0.0

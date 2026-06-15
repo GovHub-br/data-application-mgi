@@ -19,10 +19,10 @@ env:
   POETRY_VERSION: "1.8.5"
   POETRY_VIRTUALENVS_IN_PROJECT: "true"
   POETRY_CACHE_DIR: "/home/runner/.cache/poetry"
-  DBT_PROJECT_DIR: "${{ github.workspace }}/dbt/ipea"
+  DBT_PROJECT_DIR: "${{ github.workspace }}/dbt/minc"
 
   IMAGE_REGISTRY_OWNER: govhub-br
-  IMAGE_NAME: ghcr.io/govhub-br/airflow-ipea
+  IMAGE_NAME: ghcr.io/govhub-br/airflow-minc
   IMAGE_TAG_SHA: ${{ github.sha }}
 
 jobs:

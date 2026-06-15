@@ -1,4 +1,4 @@
-ARG AIRFLOW_VERSION=2.8.1
+ARG AIRFLOW_VERSION=3.2.2
 ARG PYTHON_VERSION=3.11
 
 FROM apache/airflow:${AIRFLOW_VERSION}-python${PYTHON_VERSION} AS airflow-base
@@ -43,22 +43,30 @@ RUN apt-get update \
 USER airflow
 WORKDIR ${AIRFLOW_HOME}
 
+COPY --chown=airflow:0 infra/airflow/simple_auth_manager_passwords.json ./simple_auth_manager_passwords.json
+
 
 FROM airflow-base AS airflow-prod
+ARG AIRFLOW_VERSION
 
 COPY requirements.txt ./requirements.txt
 
-RUN python -m pip install --no-cache-dir -r requirements.txt \
+RUN python -m pip install --no-cache-dir "apache-airflow==${AIRFLOW_VERSION}" -r requirements.txt \
+  && python -c "import airflow, sys; expected='${AIRFLOW_VERSION}'; actual=airflow.__version__; print(f'Airflow {actual}'); sys.exit(0 if actual == expected else 1)" \
+  && python -m pip check \
   && rm -f requirements.txt
 
 ENV ENVIRONMENT=prod
 
 
 FROM airflow-base AS airflow-dev
+ARG AIRFLOW_VERSION
 
 COPY requirements.txt ./requirements.txt
 
-RUN python -m pip install --no-cache-dir -r requirements.txt \
+RUN python -m pip install --no-cache-dir "apache-airflow==${AIRFLOW_VERSION}" -r requirements.txt \
+  && python -c "import airflow, sys; expected='${AIRFLOW_VERSION}'; actual=airflow.__version__; print(f'Airflow {actual}'); sys.exit(0 if actual == expected else 1)" \
+  && python -m pip check \
   && rm -f requirements.txt
 
 ENV ENVIRONMENT=dev
