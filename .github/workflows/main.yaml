@@ -19,7 +19,7 @@ env:
   POETRY_VERSION: "1.8.5"
   POETRY_VIRTUALENVS_IN_PROJECT: "true"
   POETRY_CACHE_DIR: "/home/runner/.cache/poetry"
-  DBT_PROJECT_DIR: "${{ github.workspace }}/airflow_lappis/dags/dbt/ipea"
+  DBT_PROJECT_DIR: "${{ github.workspace }}/dbt/ipea"
 
   IMAGE_REGISTRY_OWNER: govhub-br
   IMAGE_NAME: ghcr.io/govhub-br/airflow-ipea
@@ -79,6 +79,7 @@ jobs:
         with:
           push: false
           context: .
+          file: ./infra/docker/airflow/Dockerfile
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: |
@@ -108,6 +109,7 @@ jobs:
         with:
           push: true
           context: .
+          file: ./infra/docker/airflow/Dockerfile
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: |

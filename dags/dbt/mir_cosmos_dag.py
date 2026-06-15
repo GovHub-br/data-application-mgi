@@ -8,13 +8,13 @@ os.makedirs(dbt_log_path, exist_ok=True)
 os.environ[DBT_LOG_PATH_ENVVAR] = dbt_log_path
 
 profile_config = ProfileConfig(
-    profiles_yml_filepath=f"{os.environ['AIRFLOW_REPO_BASE']}/dags/dbt/mir/profiles.yml",
+    profiles_yml_filepath=f"{os.environ['AIRFLOW_REPO_BASE']}/dbt/mir/profiles.yml",
     profile_name="mir",
     target_name="prod",
 )
 
 my_cosmos_dag = DbtDag(
-    project_config=ProjectConfig(f"{os.environ['AIRFLOW_REPO_BASE']}/dags/dbt/mir"),
+    project_config=ProjectConfig(f"{os.environ['AIRFLOW_REPO_BASE']}/dbt/mir"),
     profile_config=profile_config,
     execution_config=ExecutionConfig(
         dbt_executable_path=f"{os.environ['AIRFLOW_REPO_BASE']}/.local/bin/dbt",

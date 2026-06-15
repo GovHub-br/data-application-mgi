@@ -31,7 +31,6 @@ mypy = "*"
 types-psycopg2 = "*"
 pandas-stubs = "*"
 sqlalchemy-stubs = "*"
-jupyter = "*"
 shandy-sqlfmt = "*"
 sqlfluff = "*"
 sqlfluff-templater-dbt = "*"
@@ -158,8 +157,8 @@ capitalisation_policy = "lower"
 unwrap_wrapped_queries = true
 
 [tool.sqlfluff.templater.dbt]
-project_dir = "./airflow_lappis/dags/dbt/ipea"
-profiles_dir = "./airflow_lappis/dags/dbt/ipea"
+project_dir = "./dbt/ipea"
+profiles_dir = "./dbt/ipea"
 profile = "ipea"
 target = "prod"
 defer_mode = true
