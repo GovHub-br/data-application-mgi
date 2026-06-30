@@ -24,9 +24,9 @@ def _stamp(records: list[dict]) -> list[dict]:
 
 
 def _get_intervalo(context: object) -> tuple[str, str]:
-    ds: str = context["ds"]  # type: ignore[index]
-    conf: dict = getattr(context.get("dag_run"), "conf", {}) or {}  # type: ignore[union-attr]
-    return conf.get("data_inicial", ds), conf.get("data_final", ds)
+    data_inicial = str(context["data_interval_start"].date())  # type: ignore[index]
+    data_final = str(context["data_interval_end"].date())  # type: ignore[index]
+    return data_inicial, data_final
 
 
 @dag(
@@ -34,7 +34,6 @@ def _get_intervalo(context: object) -> tuple[str, str]:
     schedule="0 7 * * *",
     start_date=datetime(2024, 1, 1),
     catchup=False,
-    max_active_tis_per_dag=4,
     default_args=default_args,
     tags=["mgi", "compras_gov", "arp", "raw"],
 )
@@ -74,7 +73,7 @@ def arp_detalhes_dag() -> None:
         logging.info("ARP detalhes: %s atas para empenhos (%s→%s)", len(pares), data_inicial, data_final)
         return pares
 
-    @task
+    @task(max_active_tis_per_dag=4)
     def fetch_unidades_adesoes(args: dict) -> dict:
         """Busca unidades (endpoint 3) e adesões (endpoint 5) para um item."""
         api = ClienteComprasGov()
@@ -92,7 +91,7 @@ def arp_detalhes_dag() -> None:
         logging.info("Item ata=%s ug=%s item=%s: unidades=%s adesoes=%s", ata, ug, item, len(unidades), len(adesoes))
         return {"unidades": len(unidades), "adesoes": len(adesoes)}
 
-    @task
+    @task(max_active_tis_per_dag=4)
     def fetch_empenhos(args: dict) -> dict:
         """Busca empenhos e saldos (endpoint 4) para uma ata."""
         api = ClienteComprasGov()

@@ -1,5 +1,4 @@
 import logging
-import time
 from datetime import datetime, timedelta
 
 from airflow.sdk import dag, task
@@ -10,11 +9,11 @@ from postgres_helpers import get_postgres_conn
 
 SCHEMA = "compras_gov"
 PAGE_SIZE = 500
-BLOCK_SIZE = 15
+BLOCK_SIZE = 10
 
 ENDPOINT = "/modulo-arp/1_consultarARP"
 TABLE = "raw_arp"
-PK = ["numeroaregistropreco", "codigounidadegerenciadora"]
+PK = ["numeroataregistropreco", "idcompra"]
 
 default_args = {
     "owner": "mgi",
@@ -31,9 +30,9 @@ def _stamp(records: list[dict]) -> list[dict]:
 
 
 def _get_intervalo(context: object) -> tuple[str, str]:
-    ds: str = context["ds"]  # type: ignore[index]
-    conf: dict = getattr(context.get("dag_run"), "conf", {}) or {}  # type: ignore[union-attr]
-    return conf.get("data_inicial", ds), conf.get("data_final", ds)
+    data_inicial = str(context["data_interval_start"].date())  # type: ignore[index]
+    data_final = str(context["data_interval_end"].date())  # type: ignore[index]
+    return data_inicial, data_final
 
 
 @dag(
@@ -57,7 +56,7 @@ def arp_dag() -> None:
         logging.info("[%s] %s→%s total_paginas=%s", ENDPOINT, data_inicial, data_final, total)
         return list(range(1, total + 1, BLOCK_SIZE))
 
-    @task
+    @task(max_active_tis_per_dag=6)
     def fetch_block(pagina_inicio: int, **context: object) -> dict:
         data_inicial, data_final = _get_intervalo(context)
         api = ClienteComprasGov()
@@ -65,7 +64,6 @@ def arp_dag() -> None:
         ingeridos = 0
         api_total = 0
         for pagina in range(pagina_inicio, pagina_inicio + BLOCK_SIZE):
-            time.sleep(1)
             _, resp = api.request(
                 "GET", ENDPOINT,
                 params={"dataVigenciaInicialMin": data_inicial, "dataVigenciaInicialMax": data_final, "pagina": pagina, "tamanhoPagina": PAGE_SIZE},

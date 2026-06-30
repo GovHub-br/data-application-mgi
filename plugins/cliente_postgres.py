@@ -102,6 +102,14 @@ class ClientPostgresDB:
                         f"[cliente_postgres.py] Table {schema}.{table_name} created "
                         f"or already exists"
                     )
+                except (psycopg2.errors.UniqueViolation, psycopg2.errors.DuplicateTable):
+                    # Duas tasks concorrentes tentaram criar a tabela ao mesmo tempo.
+                    # A que perdeu a corrida pode ignorar — a tabela já existe.
+                    conn.rollback()
+                    logging.info(
+                        f"[cliente_postgres.py] Table {schema}.{table_name} already "
+                        f"created by concurrent task — skipping"
+                    )
                 except psycopg2.Error as err:
                     logging.error(
                         f"[cliente_postgres.py] Failed to create table {schema}."
@@ -185,7 +193,8 @@ class ClientPostgresDB:
         conflict_fields: Optional[List[str]] = None,
         primary_key: Optional[List[str]] = None,
         schema: str = "raw",
-    ) -> None:
+        return_stats: bool = False,
+    ) -> Optional[Tuple[int, int]]:
         """Insert data into database table.
 
         Automatically normalizes all keys to **lowercase** and evolves
@@ -241,16 +250,30 @@ class ClientPostgresDB:
                 [f'"{col}" = EXCLUDED."{col}"' for col in columns]
             )
             sql += f" ON CONFLICT ({conflict_str}) DO UPDATE SET {update_str}"
+            if return_stats:
+                # xmax=0 → nova inserção; xmax>0 → atualização por conflito
+                sql += " RETURNING (xmax = 0)::int"
 
         with psycopg2.connect(self.conn_str) as conn:
             with conn.cursor() as cursor:
                 try:
                     psycopg2.extras.execute_values(cursor, sql, values)
+                    if return_stats and conflict_fields:
+                        rows = cursor.fetchall()
+                        conn.commit()
+                        new_count = sum(r[0] for r in rows)
+                        updated_count = len(rows) - new_count
+                        logging.info(
+                            f"[cliente_postgres.py] {schema}.{table_name}: "
+                            f"novos={new_count} atualizados={updated_count}"
+                        )
+                        return new_count, updated_count
                     conn.commit()
                     logging.info(
                         f"[cliente_postgres.py] Inserted data into {schema}."
                         f"{table_name}"
                     )
+                    return None
                 except psycopg2.Error as err:
                     logging.error(
                         f"[cliente_postgres.py] Failed to insert data into {schema}."

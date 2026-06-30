@@ -24,9 +24,9 @@ def _stamp(records: list[dict]) -> list[dict]:
 
 
 def _get_intervalo(context: object) -> tuple[str, str]:
-    ds: str = context["ds"]  # type: ignore[index]
-    conf: dict = getattr(context.get("dag_run"), "conf", {}) or {}  # type: ignore[union-attr]
-    return conf.get("data_inicial", ds), conf.get("data_final", ds)
+    data_inicial = str(context["data_interval_start"].date())  # type: ignore[index]
+    data_final = str(context["data_interval_end"].date())  # type: ignore[index]
+    return data_inicial, data_final
 
 
 @dag(
@@ -34,7 +34,6 @@ def _get_intervalo(context: object) -> tuple[str, str]:
     schedule="0 5 * * *",
     start_date=datetime(2024, 1, 1),
     catchup=False,
-    max_active_tis_per_dag=4,
     default_args=default_args,
     tags=["mgi", "compras_gov", "contratos", "raw"],
 )
@@ -55,7 +54,7 @@ def contratos_item_dag() -> None:
         logging.info("Total de órgãos a processar: %s", len(orgaos))
         return orgaos
 
-    @task
+    @task(max_active_tis_per_dag=4)
     def ingest_orgao(codigo_orgao: str, **context: object) -> dict:
         data_inicial, data_final = _get_intervalo(context)
         api = ClienteComprasGov()

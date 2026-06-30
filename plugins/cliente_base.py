@@ -47,21 +47,34 @@ class ClienteBase:
                     f"{response.status_code}"
                 )
                 return HTTPStatus(response.status_code), response.json()
-            except httpx.HTTPError as e:
-                status = response.status_code if response else "Unknown"
+            except httpx.HTTPStatusError as e:
+                status = e.response.status_code
+                is_last_attempt = attempt == self.DEFAULT_MAX_RETRIES - 1
                 logging.warning(
-                    f"[cliente_base.py] API failed with status {status} on "
-                    f"attempt {attempt + 1}. Error: {str(e)}"
+                    f"[cliente_base.py] HTTP {status} on attempt {attempt + 1} "
+                    f"for {method} {path}"
                 )
-                if attempt < self.DEFAULT_MAX_RETRIES:
-                    time.sleep(attempt**2 * self.DEFAULT_SLEEP_SECONDS)
-                else:
-                    logging.error(
-                        f"[cliente_base.py] API failed after "
-                        f"{self.DEFAULT_MAX_RETRIES} attempts. Error: {str(e)}"
-                    )
+                if is_last_attempt:
                     raise Exception(
-                        "API failed after the maximum number of attempts!"
+                        f"API failed with HTTP {status} after "
+                        f"{self.DEFAULT_MAX_RETRIES} attempts"
                     ) from e
+                # 429 Too Many Requests: espera mais tempo antes de tentar novamente
+                if status == 429:
+                    wait = 45 * (attempt + 1)
+                    logging.warning(f"[cliente_base.py] Rate limit atingido — aguardando {wait}s")
+                    time.sleep(wait)
+                else:
+                    time.sleep(attempt**2 * self.DEFAULT_SLEEP_SECONDS)
+            except httpx.HTTPError as e:
+                is_last_attempt = attempt == self.DEFAULT_MAX_RETRIES - 1
+                logging.warning(
+                    f"[cliente_base.py] Request error on attempt {attempt + 1}: {e}"
+                )
+                if is_last_attempt:
+                    raise Exception(
+                        f"API failed after {self.DEFAULT_MAX_RETRIES} attempts"
+                    ) from e
+                time.sleep(attempt**2 * self.DEFAULT_SLEEP_SECONDS)
 
         return HTTPStatus.INTERNAL_SERVER_ERROR, None

@@ -28,7 +28,6 @@ def _stamp(records: list[dict]) -> list[dict]:
     schedule="0 3 * * 0",
     start_date=datetime(2024, 1, 1),
     catchup=False,
-    max_active_tis_per_dag=4,
     default_args=default_args,
     tags=["mgi", "compras_gov", "pesquisa_preco", "raw"],
 )
@@ -43,7 +42,7 @@ def pesquisa_preco_material_dag() -> None:
         logging.info("Pesquisa de preços material: %s itens a processar", len(itens))
         return itens
 
-    @task
+    @task(max_active_tis_per_dag=4)
     def fetch_preco_material(codigo_item: str) -> dict:
         api = ClienteComprasGov()
         db = ClientPostgresDB(get_postgres_conn())

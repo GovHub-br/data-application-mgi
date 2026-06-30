@@ -14,7 +14,6 @@ BLOCK_SIZE = 15
 
 ENDPOINT = "/modulo-arp/2_consultarARPItem"
 TABLE = "raw_arp_item"
-PK = ["numeroaregistropreco", "codigounidadegerenciadora", "numeroitem"]
 
 default_args = {
     "owner": "mgi",
@@ -31,9 +30,9 @@ def _stamp(records: list[dict]) -> list[dict]:
 
 
 def _get_intervalo(context: object) -> tuple[str, str]:
-    ds: str = context["ds"]  # type: ignore[index]
-    conf: dict = getattr(context.get("dag_run"), "conf", {}) or {}  # type: ignore[union-attr]
-    return conf.get("data_inicial", ds), conf.get("data_final", ds)
+    data_inicial = str(context["data_interval_start"].date())  # type: ignore[index]
+    data_final = str(context["data_interval_end"].date())  # type: ignore[index]
+    return data_inicial, data_final
 
 
 @dag(
@@ -76,7 +75,7 @@ def arp_item_dag() -> None:
             api_total = resp.get("totalRegistros", 0)
             if not data:
                 break
-            db.insert_data(_stamp(data), TABLE, primary_key=PK, conflict_fields=PK, schema=SCHEMA)
+            db.insert_data(_stamp(data), TABLE, schema=SCHEMA)
             ingeridos += len(data)
             if resp.get("paginasRestantes", 0) == 0:
                 break
