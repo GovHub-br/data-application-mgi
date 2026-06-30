@@ -32,7 +32,7 @@ Esse trabalho  é mantido pelo [Lab Livre](https://www.instagram.com/lab.livre/)
 Para dúvidas, sugestões ou para contribuir com o projeto, entre em contato conosco: [lablivreunb@gmail.com](mailto:lablivreunb@gmail.com)
 
 
-# Data Application MinC
+# Data Application MGI
 
 Este repositório organiza a aplicação de dados em torno do Airflow e do dbt. A
 raiz contém o código executado pelo Airflow; a pasta `infra/` concentra Docker,

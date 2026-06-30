@@ -1,4 +1,4 @@
-minc:
+mgi:
   target: prod
   outputs:
     prod:
@@ -8,4 +8,4 @@ minc:
       password: "{{ env_var('DB_DW_PASSWORD', 'postgres_dw') }}"
       port: "{{ env_var('DB_DW_PORT', '5432') | int }}"
       dbname: "{{ env_var('DB_DW_DBNAME', 'data_warehouse') }}"
-      schema: "{{ env_var('DB_DW_SCHEMA', 'minc') }}"
+      schema: "{{ env_var('DB_DW_SCHEMA', 'mgi') }}"

@@ -156,9 +156,9 @@ capitalisation_policy = "lower"
 unwrap_wrapped_queries = true
 
 [tool.sqlfluff.templater.dbt]
-project_dir = "./dbt/minc"
-profiles_dir = "./dbt/minc"
-profile = "minc"
+project_dir = "./dbt/mgi"
+profiles_dir = "./dbt/mgi"
+profile = "mgi"
 target = "prod"
 defer_mode = true
 static_analysis = true

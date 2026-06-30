@@ -1,9 +1,9 @@
-name: "minc"
+name: "mgi"
 
 version: "1.0.0"
 config-version: 2
 
-profile: "minc"
+profile: "mgi"
 
 model-paths: ["models"]
 analysis-paths: ["analyses"]
@@ -18,7 +18,7 @@ clean-targets:
   - "logs"
 
 models:
-  minc:
+  mgi:
     +database: analytics
     metadata:
       +materialized: incremental

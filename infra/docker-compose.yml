@@ -1,4 +1,4 @@
-name: data-application-minc
+name: data-application-mgi
 
 # Base configuration for Airflow services
 x-airflow-common: &airflow-common
@@ -20,7 +20,7 @@ x-airflow-common: &airflow-common
     - ../helpers:/opt/airflow/helpers/
     - ../templates:/opt/airflow/templates/
     - ../dbt:/opt/airflow/dbt/
-    - ../dbt/minc/profiles.yml:/opt/airflow/.dbt/profiles.yml
+    - ../dbt/mgi/profiles.yml:/opt/airflow/.dbt/profiles.yml
   depends_on: &airflow-common-depends-on
     postgres:
       condition: service_healthy
@@ -43,6 +43,7 @@ x-airflow-environment: &airflow-common-env
   AIRFLOW__WEBSERVER__NAVBAR_COLOR: '#112130'
   AIRFLOW__WEBSERVER__RELOAD_ON_PLUGIN_CHANGE: 'true'
   AIRFLOW__API__SECRET_KEY: ${AIRFLOW__API__SECRET_KEY:-local-dev-airflow-secret-key}
+  AIRFLOW__API_AUTH__JWT_SECRET: ${AIRFLOW__API_AUTH__JWT_SECRET:-local-dev-airflow-jwt-secret}
   PYTHONPATH: "/opt/airflow/dags:/opt/airflow/plugins:/opt/airflow/helpers"
   _AIRFLOW_DB_MIGRATE: 'true'
   AIRFLOW__CORE__PLUGINS_FOLDER: /opt/airflow/plugins

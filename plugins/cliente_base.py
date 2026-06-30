@@ -1,12 +1,13 @@
 import logging
 import time
-import httpx
-from typing import Any, Optional, Tuple
 from http import HTTPStatus
+from typing import Any, Optional, Tuple
+
+import httpx
 
 
 class ClienteBase:
-    DEFAULT_TIMEOUT = 10
+    DEFAULT_TIMEOUT = httpx.Timeout(connect=10, read=300, write=10, pool=10)
     DEFAULT_MAX_RETRIES = 3
     DEFAULT_SLEEP_SECONDS = 2
 

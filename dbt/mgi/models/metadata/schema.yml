@@ -2,7 +2,7 @@ version: 2
 
 models:
   - name: models_metadata
-    description: Metadados dos modelos dbt do projeto MinC.
+    description: Metadados dos modelos dbt do projeto MGI.
     columns:
       - name: schema_name
         tests:

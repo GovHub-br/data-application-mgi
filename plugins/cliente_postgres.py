@@ -211,6 +211,17 @@ class ClientPostgresDB:
             {str(k).lower(): v for k, v in row.items()} for row in data
         ]
 
+        # ── Deduplicação por conflict_fields dentro do batch ──
+        # Evita "ON CONFLICT DO UPDATE command cannot affect row a second time"
+        # quando a API retorna duplicatas no mesmo lote.
+        if conflict_fields:
+            cf_lower = [f.lower() for f in conflict_fields]
+            seen: dict = {}
+            for row in data_norm:
+                key = tuple(row.get(f) for f in cf_lower)
+                seen[key] = row  # última ocorrência vence
+            data_norm = list(seen.values())
+
         self.create_table_if_not_exists(
             data_norm[0], table_name, primary_key=primary_key, schema=schema
         )

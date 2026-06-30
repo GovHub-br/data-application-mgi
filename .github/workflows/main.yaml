@@ -19,10 +19,10 @@ env:
   POETRY_VERSION: "1.8.5"
   POETRY_VIRTUALENVS_IN_PROJECT: "true"
   POETRY_CACHE_DIR: "/home/runner/.cache/poetry"
-  DBT_PROJECT_DIR: "${{ github.workspace }}/dbt/minc"
+  DBT_PROJECT_DIR: "${{ github.workspace }}/dbt/mgi"
 
   IMAGE_REGISTRY: ghcr.io
-  IMAGE_NAME: ghcr.io/govhub-br/data-application-minc-airflow
+  IMAGE_NAME: ghcr.io/govhub-br/data-application-mgi-airflow
   IMAGE_TAG_SHA: ${{ github.sha }}
 
 jobs:
