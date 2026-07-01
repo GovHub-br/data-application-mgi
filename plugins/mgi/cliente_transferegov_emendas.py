@@ -1,7 +1,7 @@
 import http
 import logging
 from typing import Optional
-from cliente_base import ClienteBase
+from mgi.cliente_base import ClienteBase
 
 
 class ClienteTransfereGov(ClienteBase):

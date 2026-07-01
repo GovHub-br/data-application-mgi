@@ -5,9 +5,9 @@ from datetime import datetime, timedelta
 from airflow.providers.standard.operators.trigger_dagrun import TriggerDagRunOperator
 from airflow.sdk import dag, task
 
-from cliente_compras_gov import ClienteComprasGov
-from cliente_postgres import ClientPostgresDB
-from postgres_helpers import get_postgres_conn
+from mgi.cliente_compras_gov import ClienteComprasGov
+from mgi.cliente_postgres import ClientPostgresDB
+from mgi.helpers.postgres_helpers import get_postgres_conn
 
 SCHEMA = "compras_gov"
 PAGE_SIZE = 500

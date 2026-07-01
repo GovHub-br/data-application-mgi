@@ -1,8 +1,8 @@
 import http
 import logging
 from typing import Any, Dict, List, Optional, Tuple
-from cliente_base import ClienteBase
-from safe_request import request_safe
+from mgi.cliente_base import ClienteBase
+from mgi.helpers.safe_request import request_safe
 
 
 # logging.basicConfig(

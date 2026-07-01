@@ -5,7 +5,7 @@ from zeep.transports import Transport
 from zeep.wsse.username import UsernameToken
 from requests import Session
 from typing import Dict, Any, Optional
-from retry_helpers import retry_on_exception
+from mgi.helpers.retry_helpers import retry_on_exception
 import requests
 import base64
 

@@ -4,7 +4,7 @@ from typing import Dict, Any
 import requests
 import xml.etree.ElementTree as ET
 from jinja2 import Environment, FileSystemLoader
-from dados_funcionais_handler import DadosFuncionaisHandler
+from mgi.helpers.dados_funcionais_handler import DadosFuncionaisHandler
 
 
 class ClienteSiape:

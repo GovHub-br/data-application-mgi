@@ -3,7 +3,7 @@ import threading
 import time
 from typing import Any
 
-from cliente_base import ClienteBase
+from mgi.cliente_base import ClienteBase
 
 
 class RateLimiter:

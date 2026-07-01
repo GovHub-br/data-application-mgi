@@ -1,6 +1,6 @@
 import logging
 import http
-from cliente_base import ClienteBase
+from mgi.cliente_base import ClienteBase
 
 class ClienteTransfereGov(ClienteBase):
     BASE_URL = "https://api.transferegov.gestao.gov.br/fundoafundo"

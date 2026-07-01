@@ -1,6 +1,6 @@
 import http
 import logging
-from cliente_base import ClienteBase
+from mgi.cliente_base import ClienteBase
 
 
 class ClienteTed(ClienteBase):
