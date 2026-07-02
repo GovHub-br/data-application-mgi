@@ -1,3 +1,11 @@
+"""DAG do Airflow (Cosmos/DbtDag) para o projeto dbt do MGI.
+
+NAO REMOVER a palavra "airflow" deste arquivo: o Airflow, em safe_mode, so
+importa arquivos de DAG que contenham as palavras "airflow" e "dag". Como este
+modulo importa tudo de `cosmos` (sem referencia textual a "airflow"), sem esta
+docstring a DAG e silenciosamente ignorada ("assumed to contain no DAGs").
+"""
+
 import os
 import shutil
 from datetime import datetime
