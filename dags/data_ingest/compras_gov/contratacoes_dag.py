@@ -15,6 +15,7 @@ MODALIDADES = [3, 5, 6, 7]  # Concorrência Eletrônica, Pregão, Dispensa, Inex
 
 default_args = {
     "owner": "mgi",
+    "queue": "mgi",
     "retries": 3,
     "retry_delay": timedelta(minutes=5),
 }

@@ -18,6 +18,7 @@ TABLE = "raw_unidade_fornecimento_material"
 
 default_args = {
     "owner": "mgi",
+    "queue": "mgi",
     "retries": 3,
     "retry_delay": timedelta(minutes=5),
 }

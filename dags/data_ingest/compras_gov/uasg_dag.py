@@ -19,6 +19,7 @@ PK = ["codigouasg"]
 
 default_args = {
     "owner": "mgi",
+    "queue": "mgi",
     "retries": 3,
     "retry_delay": timedelta(minutes=5),
 }
