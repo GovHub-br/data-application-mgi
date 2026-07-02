@@ -7,7 +7,9 @@ from cosmos import DbtDag, ExecutionConfig, ProfileConfig, ProjectConfig
 from cosmos.constants import DBT_LOG_PATH_ENVVAR
 
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+# dags/mgi/dbt/mgi_cosmos_dag.py -> raiz do repo esta 3 niveis acima (parents[3]):
+# parents[0]=dbt, parents[1]=mgi, parents[2]=dags, parents[3]=<raiz do repo/bundle>
+REPO_ROOT = Path(__file__).resolve().parents[3]
 DBT_PROJECT_PATH = REPO_ROOT / "dbt" / "mgi"
 DBT_EXECUTABLE_PATH = (
     os.environ.get("DBT_EXECUTABLE_PATH")
