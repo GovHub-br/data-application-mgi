@@ -14,6 +14,7 @@ BLOCK_SIZE = 15
 
 ENDPOINT = "/modulo-arp/2_consultarARPItem"
 TABLE = "raw_arp_item"
+PK = ["numeroataregistropreco", "codigounidadegerenciadora", "numeroitem", "idcompra", "nifornecedor"]
 
 default_args = {
     "owner": "mgi",
@@ -76,8 +77,14 @@ def arp_item_dag() -> None:
             api_total = resp.get("totalRegistros", 0)
             if not data:
                 break
-            db.insert_data(_stamp(data), TABLE, schema=SCHEMA)
-            ingeridos += len(data)
+            pk_lower = [f.lower() for f in PK]
+            validos = [r for r in data if all(r.get(k) is not None for k in pk_lower)]
+            descartados = len(data) - len(validos)
+            if descartados:
+                logging.warning("[%s] p.%s: %s registro(s) descartados por PK nula", ENDPOINT, pagina, descartados)
+            if validos:
+                db.insert_data(_stamp(validos), TABLE, primary_key=PK, conflict_fields=PK, schema=SCHEMA)
+            ingeridos += len(validos)
             if resp.get("paginasRestantes", 0) == 0:
                 break
         return {"ingeridos": ingeridos, "api_total": api_total}
