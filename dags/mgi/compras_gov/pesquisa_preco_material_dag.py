@@ -37,7 +37,7 @@ def pesquisa_preco_material_dag() -> None:
     def get_itens_material() -> list[str]:
         db = ClientPostgresDB(get_postgres_conn())
         rows = db.execute_query(
-            f"SELECT DISTINCT codigoitem FROM {SCHEMA}.raw_item_material ORDER BY codigoitem"
+            f"SELECT DISTINCT codigoitem FROM {SCHEMA}.raw_item_material ORDER BY codigoitem limit 100"
         )
         itens = [str(r[0]) for r in rows]
         logging.info("Pesquisa de preços material: %s itens a processar", len(itens))
@@ -49,14 +49,14 @@ def pesquisa_preco_material_dag() -> None:
 
 
     @task(max_active_tis_per_dag=4)
-    def fetch_preco_material(codigo_item: str) -> dict:
+    def fetch_preco_material(lote: list[str]) -> dict:
         api = ClienteComprasGov()
         db = ClientPostgresDB(get_postgres_conn())
 
-        for codigo_item in lotes:
+        for codigo_item in lote:
             preco, _ = api.fetch_all_pages(
                 "/modulo-pesquisa-preco/1_consultarMaterial",
-                {"codigoItemCatalogo": codigo_item},
+                {"tipo": "codigoItemCatalogo","codigo": codigo_item},
             )
             if preco:
                 db.insert_data(_stamp(preco), "raw_pesquisa_preco_material", schema=SCHEMA)
@@ -81,7 +81,7 @@ def pesquisa_preco_material_dag() -> None:
 
     itens = get_itens_material()
     lotes = gerar_lotes(itens)
-    results = fetch_preco_material.expand(lotes=lotes)
+    results = fetch_preco_material.expand(lote=lotes)
     validate(results)
 
 
