@@ -43,7 +43,6 @@ logs/
 
 # Jupyter
 **/*.ipynb_checkpoints/
-**/*.ipynb
 
 # System files
 .DS_Store
