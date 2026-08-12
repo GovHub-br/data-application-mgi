@@ -37,7 +37,7 @@ def pesquisa_preco_material_dag() -> None:
     def get_itens_material() -> list[str]:
         db = ClientPostgresDB(get_postgres_conn())
         rows = db.execute_query(
-            f"SELECT DISTINCT codigoitem FROM {SCHEMA}.raw_item_material ORDER BY codigoitem limit 100"
+            f"SELECT DISTINCT codigoitem FROM {SCHEMA}.raw_item_material ORDER BY codigoitem"
         )
         itens = [str(r[0]) for r in rows]
         logging.info("Pesquisa de preços material: %s itens a processar", len(itens))
