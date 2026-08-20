@@ -43,24 +43,30 @@ def pesquisa_preco_material_dag() -> None:
         logging.info("Pesquisa de preços material: %s itens a processar", len(itens))
         return itens
 
+    @task
+    def gerar_lotes(itens: list[str], tamanho: int = 100) -> list[list[str]]:
+        return [itens[i:i + tamanho] for i in range(0, len(itens), tamanho)]
+
+
     @task(max_active_tis_per_dag=4)
-    def fetch_preco_material(codigo_item: str) -> dict:
+    def fetch_preco_material(lote: list[str]) -> dict:
         api = ClienteComprasGov()
         db = ClientPostgresDB(get_postgres_conn())
 
-        preco, _ = api.fetch_all_pages(
-            "/modulo-pesquisa-preco/1_consultarMaterial",
-            {"codigoItemCatalogo": codigo_item},
-        )
-        if preco:
-            db.insert_data(_stamp(preco), "raw_pesquisa_preco_material", schema=SCHEMA)
+        for codigo_item in lote:
+            preco, _ = api.fetch_all_pages(
+                "/modulo-pesquisa-preco/1_consultarMaterial",
+                {"tipo": "codigoItemCatalogo","codigo": codigo_item},
+            )
+            if preco:
+                db.insert_data(_stamp(preco), "raw_pesquisa_preco_material", schema=SCHEMA)
 
-        detalhe, _ = api.fetch_all_pages(
-            "/modulo-pesquisa-preco/2_consultarMaterialDetalhe",
-            {"codigoItemCatalogo": codigo_item},
-        )
-        if detalhe:
-            db.insert_data(_stamp(detalhe), "raw_pesquisa_preco_material_detalhe", schema=SCHEMA)
+            detalhe, _ = api.fetch_all_pages(
+                "/modulo-pesquisa-preco/2_consultarMaterialDetalhe",
+                {"codigoItemCatalogo": codigo_item},
+            )
+            if detalhe:
+                db.insert_data(_stamp(detalhe), "raw_pesquisa_preco_material_detalhe", schema=SCHEMA)
 
         return {"preco": len(preco), "detalhe": len(detalhe)}
 
@@ -74,8 +80,11 @@ def pesquisa_preco_material_dag() -> None:
         )
 
     itens = get_itens_material()
-    results = fetch_preco_material.expand(codigo_item=itens)
+    lotes = gerar_lotes(itens)
+    results = fetch_preco_material.expand(lote=lotes)
     validate(results)
 
 
 pesquisa_preco_material_dag()
+
+   
