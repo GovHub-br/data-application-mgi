@@ -10,8 +10,8 @@ SCHEMA="compras_gov"
 default_args = {
     "owner": "Zayra",
     "queue": "mgi",
-    "retries": 1,
-    "retry_delay": timedelta(minutes=1),
+    "retries": 3,
+    "retry_delay": timedelta(minutes=5),
 }
 
 def _stamp(records: list[dict]) -> list[dict]:
@@ -43,7 +43,7 @@ def pgc_detalhe_dag() -> None:
 
         rows = db.execute_query(
             f"""
-            SELECT DISTINCT cnpjcpforgao FROM {SCHEMA}.raw_orgao WHERE cnpjcpforgao IS NOT NULL ORDER BY cnpjcpforgao limit 5
+            SELECT DISTINCT cnpjcpforgao FROM {SCHEMA}.raw_orgao WHERE cnpjcpforgao IS NOT NULL ORDER BY cnpjcpforgao 
             """
         )
         if not rows:
@@ -111,10 +111,13 @@ def pgc_detalhe_dag() -> None:
 
     @task
     def validate(results: list[dict]) -> None:
-        total_registros = sum(sum(ano.values()) for ano in (r["ano"] for r in results))
+        # print(f"debug: {results}")
+        # print(f"debug:{type(results)}")
+        results_list=list(results)
+        total_registros = sum(sum(ano.values()) for ano in (r["ano"] for r in results_list))
         logging.info(
             "PGC Detalhe: órgãos=%s, total registros=%s",
-            len(results), total_registros,
+            len(results_list), total_registros,
         )
 
     codigos_orgao=get_codigos_orgao()
