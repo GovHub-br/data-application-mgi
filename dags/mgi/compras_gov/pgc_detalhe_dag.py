@@ -31,11 +31,27 @@ def _stamp(records: list[dict]) -> list[dict]:
         "modo": Param(
             "incremental",enum=["incremental", "fria"], description="Modo de execução do DAG: incremental ou full"),
         "ano_inicio": Param(2023, type="integer", description="Ano inicial para consulta de PGC Detalhe (2023)"),
-        "ano_fim": Param(2025, type="integer", description="Ano final para consulta de PGC Detalhe (ano atual-1)"),
     },
     max_active_tasks=4
 )
 def pgc_detalhe_dag() -> None:
+
+    @task
+    def delete_raw_current_year()->None:
+        context = get_current_context()
+        modo=context["params"]["modo"]
+        if modo == "fria":
+            logging.info("Modo de execução: fria. Nenhum registro será excluído da tabela raw_pgc_detalhe")
+            return
+        logging.info("Modo de execução: incremental. Excluindo registros de PGC Detalhe do ano atual da tabela raw_pgc_detalhe")
+        current_date=datetime.now()
+        ano_atual=current_date.year
+        db= ClientPostgresDB(get_postgres_conn())
+        delete_query=f"""
+            DELETE FROM {SCHEMA}.raw_pgc_detalhe WHERE anoPcaProjetoCompra='{ano_atual}'
+        """
+        db.execute_non_query(delete_query)
+        logging.info("Registros de PGC Detalhe para o ano %s excluídos da tabela raw_pgc_detalhe", ano_atual)
 
     @task
     def get_codigos_orgao() -> list[str]:
@@ -61,15 +77,16 @@ def pgc_detalhe_dag() -> None:
     @task
     def fetch_pgc_detalhe(orgao: str) -> dict:
         context = get_current_context()
+        current_date=datetime.now()
+        ano_atual=current_date.year
         modo=context["params"]["modo"]
+
         if modo == "fria":
             ano_inicio=context["params"]["ano_inicio"]
-            ano_fim=context["params"]["ano_fim"]
+            ano_fim=ano_atual
             anos=list(range(ano_inicio, ano_fim+1))
             logging.info("Modo de execução: fria. Anos a processar: %s", anos)
         else:
-            current_date=datetime.now()
-            ano_atual=current_date.year
             anos=[ano_atual]
             logging.info("Modo de execução: incremental. Ano a processar: %s", anos)
 
@@ -84,14 +101,6 @@ def pgc_detalhe_dag() -> None:
                     {"orgao": orgao, "anoPcaProjetoCompra": ano}
                 )
                 logging.info("PGC Detalhe: órgão=%s, ano=%s, registros=%s", orgao, ano, len(pgc))
-
-                if modo == "incremental":
-                    delete_query=f"""
-                        DELETE FROM {SCHEMA}.raw_pgc_detalhe WHERE anoPcaProjetoCompra='{ano}'
-                        AND cnpjcpforgao='{orgao}'
-                    """
-                    db.execute_non_query(delete_query)
-                    logging.info("Registros de PGC Detalhe para o ano %s e órgão %s excluídos da tabela raw_pgc_detalhe", ano, orgao)
 
                 if pgc:
                     logging.info("Inserindo %s registros de PGC Detalhe no banco de dados", len(pgc))
@@ -119,9 +128,13 @@ def pgc_detalhe_dag() -> None:
             "PGC Detalhe: órgãos=%s, total registros=%s",
             len(results_list), total_registros,
         )
-
+    delete_current_year=delete_raw_current_year()
     codigos_orgao=get_codigos_orgao()
     resultados=fetch_pgc_detalhe.expand(orgao=codigos_orgao)
+
+    delete_current_year >> resultados 
+    codigos_orgao >> resultados
+
     validate(resultados)
 
 
