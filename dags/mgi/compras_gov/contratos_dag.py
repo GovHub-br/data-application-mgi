@@ -6,6 +6,7 @@ from airflow.sdk import dag, task
 from mgi.cliente_compras_gov import ClienteComprasGov
 from mgi.cliente_postgres import ClientPostgresDB
 from mgi.helpers.postgres_helpers import get_postgres_conn
+from airflow.providers.postgres.hooks.postgres import PostgresHook
 
 SCHEMA = "compras_gov"
 PAGE_SIZE = 500
@@ -33,7 +34,7 @@ def _get_intervalo(context: object) -> tuple[str, str]:
 
 @dag(
     dag_id="contratos_dag",
-    schedule="0 5 * * *",
+    schedule=None,
     start_date=datetime(2024, 1, 1),
     catchup=False,
     default_args=default_args,
@@ -45,7 +46,8 @@ def contratos_dag() -> None:
         db = ClientPostgresDB(get_postgres_conn())
         try:
             rows = db.execute_query(
-                f"SELECT DISTINCT codigoorgao FROM {SCHEMA}.raw_orgao ORDER BY codigoorgao"
+                f"SELECT DISTINCT codigoorgao FROM {SCHEMA}.raw_orgao "
+                "ORDER BY codigoorgao"
             )
         except Exception as exc:
             raise RuntimeError(
@@ -75,22 +77,36 @@ def contratos_dag() -> None:
                 _stamp(batch),
                 "raw_contratos",
                 primary_key=["codigounidadegestora", "numerocontrato", "nifornecedor"],
-                conflict_fields=["codigounidadegestora", "numerocontrato", "nifornecedor"],
+                conflict_fields=[
+                    "codigounidadegestora",
+                    "numerocontrato",
+                    "nifornecedor",
+                ],
                 schema=SCHEMA,
             )
             contratos += len(batch)
 
-        logging.info("Órgão %s %s→%s: contratos=%s", codigo_orgao, data_inicial, data_final, contratos)
+        logging.info(
+            "Órgão %s %s→%s: contratos=%s",
+            codigo_orgao,
+            data_inicial,
+            data_final,
+            contratos,
+        )
         return {"contratos": contratos}
 
     @task
-    def validate(results: list[dict]) -> None:
-        total_contratos = sum(r["contratos"] for r in results)
-        logging.info("Contratos total: contratos=%s orgaos=%s", total_contratos, len(results))
+    def validate() -> None:
+        pg_hook = PostgresHook()
+        with pg_hook.get_conn() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(f"SELECT COUNT(*) FROM {SCHEMA}.raw_contratos")
+                total_contratos = cursor.fetchone()[0]
+                logging.info("Total de contratos na tabela: %s", total_contratos)
 
     orgaos = get_orgaos()
     results = ingest_orgao.expand(codigo_orgao=orgaos)
-    validate(results)
+    results >> validate()
 
 
 contratos_dag()
