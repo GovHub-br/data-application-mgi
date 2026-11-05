@@ -1,0 +1,79 @@
+name: Request team review
+
+on:
+  pull_request_target:
+    types: [labeled, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  request-team-review:
+    name: Request review by domain
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    steps:
+      - name: Request reviewers from team labels
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        env:
+          TEAM_REVIEW_TOKEN: ${{ secrets.TEAM_REVIEW_TOKEN }}
+        with:
+          github-token: ${{ secrets.TEAM_REVIEW_TOKEN || github.token }}
+          script: |
+            const { owner, repo } = context.repo;
+            const pull_number = context.payload.pull_request.number;
+
+            const teamByLabel = {
+              "team:infra": "infra",
+              "team:mgi": "mgi",
+              "team:oss": "oss",
+            };
+
+            const currentLabels = new Set(
+              context.payload.pull_request.labels.map((label) => label.name)
+            );
+
+            const team_reviewers = [...new Set([...currentLabels]
+              .map((label) => teamByLabel[label])
+              .filter(Boolean))];
+
+            if (team_reviewers.length === 0) {
+              core.info("No team labels found for this PR.");
+              return;
+            }
+
+            if (!process.env.TEAM_REVIEW_TOKEN) {
+              core.setFailed("TEAM_REVIEW_TOKEN is required to request team reviews.");
+              return;
+            }
+
+            const requested = await github.rest.pulls.listRequestedReviewers({
+              owner,
+              repo,
+              pull_number,
+            });
+            const pendingTeams = new Set(requested.data.teams.map((team) => team.slug));
+            const failedTeams = [];
+
+            for (const team of team_reviewers) {
+              if (pendingTeams.has(team)) {
+                core.info(`Review already requested from team: ${team}`);
+                continue;
+              }
+              try {
+                await github.rest.pulls.requestReviewers({
+                  owner,
+                  repo,
+                  pull_number,
+                  team_reviewers: [team],
+                });
+                core.info(`Requested review from team: ${team}`);
+              } catch (error) {
+                failedTeams.push(`${team}: ${error.message}`);
+              }
+            }
+
+            if (failedTeams.length > 0) {
+              core.setFailed(`Could not request team reviews: ${failedTeams.join("; ")}`);
+            }
