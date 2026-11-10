@@ -42,11 +42,12 @@ def load_db_credentials(env_path: Path = ENV_PATH) -> dict[str, str]:
     return credentials
 
 
-def get_engine(env_path: Path = ENV_PATH) -> Engine:
+def get_engine(env_path: Path = ENV_PATH, **engine_kwargs) -> Engine:
     """Cria o engine do SQLAlchemy sem expor a senha.
 
     URL.create escapa caracteres especiais da senha (@, :, /), que quebrariam
-    uma URL montada com f-string.
+    uma URL montada com f-string. engine_kwargs vai direto para create_engine,
+    por exemplo connect_args={"connect_timeout": 5}.
     """
     credentials = load_db_credentials(env_path)
     url = URL.create(
@@ -57,4 +58,4 @@ def get_engine(env_path: Path = ENV_PATH) -> Engine:
         port=int(credentials["port"]),
         database=credentials["database"],
     )
-    return create_engine(url)
+    return create_engine(url, **engine_kwargs)
