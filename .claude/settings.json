@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(/notebooks/.env)",
+      "Edit(/notebooks/.env)",
+      "Read(**/notebooks/.env)",
+      "Edit(**/notebooks/.env)"
+    ]
+  }
+}

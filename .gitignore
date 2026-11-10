@@ -60,5 +60,7 @@ webserver_config.py
 # Data files
 *.csv
 
-# Claude Code (worktrees e configurações locais)
-.claude/
+# Claude Code: worktrees e configurações pessoais ficam fora do git;
+# .claude/settings.json (regras do projeto) é compartilhado.
+.claude/worktrees/
+.claude/settings.local.json
