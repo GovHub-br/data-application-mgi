@@ -110,8 +110,34 @@ with engine.connect() as conn:
     print(conn.exec_driver_sql("select current_user, current_database()").one())
 ```
 
-Os CSVs exportados (por exemplo, em `notebooks/dados/raw/`) são ignorados pelo
-git.
+### Tabelas em CSV
+
+Os notebooks não fazem a análise direto no banco: eles leem um CSV por tabela
+do schema `compras_gov`, em `notebooks/dados/raw/`. A segunda célula de código
+de cada notebook lista as tabelas que ele usa e chama `garantir_csvs`, de
+[`dados_raw.py`](dados_raw.py):
+
+```python
+from dados_raw import garantir_csvs
+
+FORCAR_DOWNLOAD = False
+TABELAS = ["raw_orgao", "raw_uasg"]
+
+garantir_csvs(TABELAS, forcar=FORCAR_DOWNLOAD)
+```
+
+- Os CSVs que já estão na pasta são reaproveitados; só os que faltam são
+  baixados.
+- Para baixar tudo de novo, com as últimas mudanças do banco, mude
+  `FORCAR_DOWNLOAD` para `True`. Depois volte para `False`, senão todo run
+  baixa tudo.
+- A conexão é testada sempre, com timeout de 5 s. A mensagem de erro troca
+  usuário, senha e host por `***`.
+- Se a célula precisa baixar e o banco não responde, ela para com erro. Com
+  `FORCAR_DOWNLOAD = True` e todos os CSVs na pasta, o erro informa a data do
+  download mais antigo e orienta voltar para `False` para usá-los.
+
+Os CSVs são ignorados pelo git.
 
 ## 4. Erros comuns
 
