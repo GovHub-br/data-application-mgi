@@ -1,0 +1,24 @@
+title = "data-application-mgi"
+
+# Usa todas as regras padrão do betterleaks e acrescenta as regras abaixo,
+# que cobrem casos que o padrão não detecta neste repositório.
+[extend]
+useDefault = true
+
+# Senha embutida em URL de conexão:
+#   postgresql+psycopg2://usuario:SENHA@host:5432/banco  betterleaks:allow
+[[rules]]
+id = "mgi-postgres-url-password"
+description = "Senha em URL de conexão PostgreSQL"
+regex = '''(?i)postgres(?:ql)?(?:\+[a-z0-9]+)?://[^:@\s/"'\\]+:([^@\s"'\\{}]{3,})@'''
+secretGroup = 1
+keywords = ["postgres"]
+
+# Senha passada como argumento nomeado, inclusive dentro do JSON de um .ipynb,
+# onde as aspas aparecem escapadas:  password=\"SENHA\"  betterleaks:allow
+[[rules]]
+id = "mgi-password-kwarg"
+description = "Senha literal em argumento password= (código ou notebook)"
+regex = '''(?i)\bpass(?:word|wd)?\s*=\s*\\?["']([^"'\\\s]{3,})\\?["']'''
+secretGroup = 1
+keywords = ["pass"]

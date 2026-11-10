@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Bloqueia o commit se as mudanças em stage tiverem senhas, tokens ou chaves.
+#
+# Instalação (vale para todos os worktrees do repositório):
+#   install -m 755 scripts/git-hooks/pre-commit-betterleaks \
+#     "$(git rev-parse --path-format=absolute --git-common-dir)/hooks/pre-commit"
+#
+# Falso positivo? Adicione o comentário  betterleaks:allow  na linha.
+set -euo pipefail
+
+if ! command -v betterleaks >/dev/null 2>&1; then
+  echo "betterleaks não encontrado no PATH; instale antes de commitar." >&2
+  exit 1
+fi
+
+repo_root="$(git rev-parse --show-toplevel)"
+config_args=()
+if [[ -f "$repo_root/.betterleaks.toml" ]]; then
+  config_args=(--config "$repo_root/.betterleaks.toml")
+else
+  echo "Aviso: .betterleaks.toml não encontrado nesta branch; usando as regras padrão." >&2
+fi
+
+betterleaks git "$repo_root" \
+  --pre-commit --staged \
+  "${config_args[@]}" \
+  --redact --no-banner --verbose

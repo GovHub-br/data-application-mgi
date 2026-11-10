@@ -1,0 +1,24 @@
+# Ambiente conda para os notebooks de análise exploratória.
+#
+# Criar:     conda env create -f notebooks/environment.yml
+# Atualizar: conda env update -f notebooks/environment.yml --prune
+# Usar:      conda activate mgi-notebooks && jupyter lab notebooks/
+name: mgi-notebooks
+channels:
+  - conda-forge
+dependencies:
+  # Mesma versão de Python exigida pelo projeto (pyproject.toml: python ~3.11)
+  - python=3.11
+  # Jupyter
+  - jupyterlab
+  - ipykernel
+  # Análise de dados (numpy fixado como no pyproject.toml)
+  - numpy=1.26.4
+  - pandas
+  - matplotlib
+  - seaborn
+  # Conexão com o PostgreSQL
+  - sqlalchemy>=2
+  - psycopg2
+  # Leitura das credenciais a partir de notebooks/.env
+  - python-dotenv
